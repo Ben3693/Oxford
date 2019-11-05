@@ -1,0 +1,134 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+int main ()
+{
+	FILE *fout;
+	/* output file for x and y data */
+
+	int N=500;
+	/* number of iterations to be calculated */
+	
+	double dvx[N+1], dvy[N+1], dvz;			 
+	double vx[N+1], vy[N+1], vz;
+	double q=1.0, M=1.0, Y=0.01, Ex=1, Bz=1.0;
+	double x[N+1], y[N+1], z, v0, A, pi;
+	/* here Y (gamma) and Ex differ */
+	/* in other cases, otherwise source */
+	/* code is identical */
+
+	/* other initial conditions */
+	v0 = 5.0;			
+	pi = 3.14159265;
+	A = 45*pi/180;
+	z = vz = 0;
+	/* approximation is used for pi */
+	/* to give angle A (theta) in radians */
+	
+	/* initial position and velocity */
+	x[0] = 0;
+	y[0] = 0;			
+	vx[0] = v0*cos(A);
+	vy[0] = v0*sin(A);
+	vz = 0;
+
+	/* starting time and step h */
+	double t[N+1], h;
+	
+	t[0] = 0;
+	h = 0.1;
+	
+	int n, i;
+	double a, b, c, k[5], m[5], l[5], p[5];
+	/* arrays are used for k, m, l and p */
+	/* to save rewriting same formulae */
+	/* for each element */
+	
+	k[0] = 0;
+	m[0] = 0;
+	l[0] = 0;
+	p[0] = 0;
+	/* 0th elements set to 0 so that */
+	/* correct values are used for */
+	/* first elements */
+	
+	if ((fout = fopen("trajectory.txt", "w")) == NULL)
+	/* output file is opened */
+	
+	{
+		printf("Cannot open %s\n", "trajectory.txt");
+		exit(1);
+	}
+	/* if the file cannot be opened */
+	/* an error is displayed and */
+	/* the program exits */
+
+	dvz = -(Y/M)*vz;
+	/* dvz is constant for all times */
+	/* so is calculated outside the loop */
+	
+	for (n=0; n<=N-1; n++)
+	{
+	/* N steps are completed but start at n=0 */
+		
+		for (i=1; i<=4; i++)
+		{
+			if (i==4)
+			{
+				a = 2;	
+			}
+			else
+			{						
+				a = 1;
+			}
+			/* since 1st and 4th elements use */
+			/* slightly different formulae */
+			/* 0th elements are set to 0 so 1st */
+			/* elements are correct and */
+			/* a different coefficient is used */
+			/* for 4th element, but this is still */
+			/* shorter than the alternative */
+			
+			b = vx[n]+l[i-1]*a/2;
+			c = vy[n]+p[i-1]*a/2;
+			/* variables b and c are used */
+			/* rather than writing out code */
+			/* multiple times */
+
+			dvx[n] = (q/M)*(Ex+c*Bz)-(Y/M)*b;
+			dvy[n] = (q/M)*(-b*Bz)-(Y/M)*c;
+			
+			k[i] = h*b;
+			m[i] = h*c;
+			l[i] = h*dvx[n];
+			p[i] = h*dvy[n];
+			/* k[1-4]-p[1-4] vary for each n */
+			/* so are calculated every iteration */
+		}
+		
+		t[n+1] = t[n]+h;
+		x[n+1] = x[n]+(k[1]+2*k[2]+2*k[3]+k[4])/6;
+		vx[n+1] = vx[n]+(l[1]+2*l[2]+2*l[3]+l[4])/6;
+		y[n+1] = y[n]+(m[1]+2*m[2]+2*m[3]+m[4])/6;
+		vy[n+1] = vy[n]+(p[1]+2*p[2]+2*p[3]+p[4])/6;
+		/* next value of t is defined and */
+		/* [n+1]th element of arrays are */
+		/* calculated */
+
+		fprintf(fout, "%lf\t%lf\n", x[n], y[n]);
+		/* x and y are printed to output file */
+		/* so trajectory can be plotted later */
+	}
+	
+	fprintf(fout, "%lf\t%lf\n", x[n+1], y[n+1]);
+	/* final elements printed since loop */
+	/* calculates them but does not */
+	/* print them */
+	
+	fclose(fout);
+	/* file is closed */
+	
+	exit (0);
+	/* program exits */
+}
